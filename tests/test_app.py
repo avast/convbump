@@ -166,6 +166,19 @@ def test_conventional_commits(create_git_repository: GitFactory) -> None:
             ),
             False,
         ),
+        (
+            ["ci:"],
+            ConventionalCommit(
+                CommitType.FEAT,
+                None,
+                False,
+                "Add new feature",
+                "ci: update build scripts\ndocs: update readme",
+                "",
+                "feat: Add new feature",
+            ),
+            False,  # Should NOT be ignored - pattern only in body, not in subject
+        ),
     ],
 )
 def test_ignore_commit(patterns: List[str], commit: ConventionalCommit, result: bool) -> None:
@@ -179,6 +192,36 @@ def test_ignore_prefix(create_git_repository: GitFactory) -> None:
         ValueError
     ):  # The chore commit should be skipped, so there are no new commits left
         _run(git, False, ignored_patterns=["chore"])
+
+
+def test_regular_commit_with_body_containing_ignored_patterns(
+    create_git_repository: GitFactory,
+) -> None:
+    """Test that a regular commit (conv commit in subject) with body containing
+    ignored patterns is NOT ignored.
+
+    This simulates the case where a commit has a conventional commit in the subject
+    but the body contains squashed commit messages (like from a PR) with ci: or docs:
+    prefixes. The commit should NOT be ignored because the ignore patterns should only
+    check the subject, not the body.
+    """
+    # Create a commit with feat: in subject but body containing ci: and docs:
+    commit_with_body = (
+        "feat: Implement user authentication\n\n"
+        "This PR includes:\n"
+        "- ci: update build pipeline\n"
+        "- docs: update API documentation\n"
+        "- feat: add login endpoint\n"
+    )
+    git = create_git_repository([(INITIAL_COMMIT, "v0.1.0"), commit_with_body])
+
+    # With "ci:" ignored - should still process the commit (feat in subject)
+    next_version, _ = _run(git, False, ignored_patterns=["ci:"])
+    assert next_version == DEFAULT_FIRST_VERSION.bump_minor()  # feat -> minor bump
+
+    # With "docs:" ignored - should still process the commit (feat in subject)
+    next_version, _ = _run(git, False, ignored_patterns=["docs:"])
+    assert next_version == DEFAULT_FIRST_VERSION.bump_minor()  # feat -> minor bump
 
 
 def test_squashed_merge_with_ignored_commits(create_git_repository: GitFactory) -> None:

@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "convbump"
-version = "1.2.0"
+version = "2.0.0"
 description = "Tool for Conventional Commits"
 authors = ["Max Kovykov <maxim.kovykov@avast.com>"]
 license = "BSD-3-Clause"

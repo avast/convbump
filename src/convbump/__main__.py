@@ -18,10 +18,13 @@ def echo(*values: str) -> None:
 
 
 def ignore_commit(patterns: Iterable[str], commit: ConventionalCommit) -> bool:
-    """Check if any pattern is contained in the commit message."""
+    """Check if any pattern is contained in the commit subject.
 
-    message = "\n\n".join((commit.raw_subject, commit.body or ""))
-    return should_ignore(message, patterns)
+    For regular commits (conventional commit in subject), we only check the subject
+    because the body may contain squashed commit messages that shouldn't affect
+    the ignore logic.
+    """
+    return should_ignore(commit.raw_subject, patterns)
 
 
 def _run(
