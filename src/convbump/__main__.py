@@ -61,8 +61,10 @@ def _run(
 
             # Only include conventional commits for version calculation
             if conventional_commit.is_conventional:
+                logger.debug("Conventional commit found: %s", conventional_commit)
                 if conventional_commit.parsed_from_body:
                     # This is a squashed commit - ignore filtering was already applied during body parsing
+                    logger.debug("Above conventional commit is parsed from body.")
                     conventional_commits.append(conventional_commit)
                 else:
                     # This is a regular commit - apply ignore patterns
