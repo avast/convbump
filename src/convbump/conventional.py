@@ -86,7 +86,9 @@ def parse_subject(subject: str) -> Tuple[str, Optional[str], bool, str]:
 def should_ignore(message: str, patterns: Iterable[str]) -> bool:
     for pattern in patterns:
         if pattern and pattern in message:
-            logger.debug(f"Ignoring commit message: {message} because it matches pattern {pattern}")
+            logger.debug(
+                f"Ignoring commit message: {message} because it matches pattern {pattern}"
+            )
             return True
     return False
 
