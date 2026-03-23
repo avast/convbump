@@ -87,7 +87,7 @@ def should_ignore(message: str, patterns: Iterable[str]) -> bool:
     for pattern in patterns:
         if pattern and pattern in message:
             logger.debug(
-                f"Ignoring commit message: {message} because it matches pattern {pattern}"
+                "Ignoring commit message: %s because it matches pattern %s", message, pattern
             )
             return True
     return False
