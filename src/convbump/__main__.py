@@ -32,6 +32,7 @@ def _run(
     strict: bool,
     directory: Optional[str] = None,
     ignored_patterns: Optional[Iterable[str]] = None,
+    extra_dirs: Optional[Iterable[str]] = None,
 ) -> Tuple[Version, str]:
     """Find the next version and generate a changelog from
     conventional commits.
@@ -39,7 +40,10 @@ def _run(
     If `strict` is True, non-conventional commits are not allowed and the command will fail.
 
     If `directory` is not None, only commits that affect that directory  and tags
-    containing this directory (normalized) are selected."""
+    containing this directory (normalized) are selected.
+
+    If `extra_dirs` is provided, commits affecting those directories are also
+    included in version calculation, but extra dirs do NOT influence tag scoping."""
 
     if ignored_patterns is None:
         ignored_patterns = []
@@ -50,14 +54,23 @@ def _run(
         echo("Using default first version")
         return DEFAULT_FIRST_VERSION, ""
 
+    if directory:
+        dirs_to_check = [directory] + list(extra_dirs or [])
+    else:
+        dirs_to_check = []
+
     conventional_commits = []
     for commit in git.list_commits(tag):
-        if not directory or commit.affects_dir(directory):
-            conventional_commit = ConventionalCommit.from_git_commit(commit, ignored_patterns)
+        if not dirs_to_check or any(commit.affects_dir(d) for d in dirs_to_check):
+            conventional_commit = ConventionalCommit.from_git_commit(
+                commit, ignored_patterns
+            )
             logger.debug("Processed conventional_commit=%s", conventional_commit)
             # Check if this is a non-conventional commit in strict mode
             if not conventional_commit.is_conventional and strict:
-                raise ValueError(f"Non-conventional commit found in strict mode: {commit.subject}")
+                raise ValueError(
+                    f"Non-conventional commit found in strict mode: {commit.subject}"
+                )
 
             # Only include conventional commits for version calculation
             if conventional_commit.is_conventional:
@@ -100,10 +113,15 @@ def convbump(verbose: bool) -> None:
 @convbump.command()
 @click.pass_context
 @click.option(
-    "--project-path", default=".", type=click.Path(file_okay=False, exists=True, path_type=Path)
+    "--project-path",
+    default=".",
+    type=click.Path(file_okay=False, exists=True, path_type=Path),
 )
 @click.option(
-    "--strict", is_flag=True, default=False, help="Fail if non-Conventinal commits are found"
+    "--strict",
+    is_flag=True,
+    default=False,
+    help="Fail if non-Conventinal commits are found",
 )
 @click.option(
     "--ignore-pattern",
@@ -111,12 +129,18 @@ def convbump(verbose: bool) -> None:
     multiple=True,
     help="Commits with containing this pattern will be ignored",
 )
+@click.option(
+    "--extra-dir",
+    multiple=True,
+    help="Extra directory to detect changes in (does not affect tag naming). Can be repeated.",
+)
 @click.argument("directory", required=False)
 def version(
     ctx: click.Context,
     project_path: Path,
     strict: bool,
     ignore_pattern: Tuple[str],
+    extra_dir: Tuple[str],
     directory: Optional[str],
 ) -> None:
     """Calculate next version from Git history.
@@ -135,7 +159,9 @@ def version(
     git = Git(project_path)
 
     try:
-        next_version, changelog = _run(git, strict, directory, ignore_pattern)
+        next_version, changelog = _run(
+            git, strict, directory, ignore_pattern, extra_dir
+        )
     except ValueError as e:
         ctx.fail(e)  # type: ignore
 
@@ -148,10 +174,15 @@ def version(
 @convbump.command()
 @click.pass_context
 @click.option(
-    "--project-path", default=".", type=click.Path(file_okay=False, exists=True, path_type=Path)
+    "--project-path",
+    default=".",
+    type=click.Path(file_okay=False, exists=True, path_type=Path),
 )
 @click.option(
-    "--strict", is_flag=True, default=False, help="Fail if non-Conventinal commits are found"
+    "--strict",
+    is_flag=True,
+    default=False,
+    help="Fail if non-Conventinal commits are found",
 )
 @click.option(
     "--ignore-pattern",
@@ -159,12 +190,18 @@ def version(
     multiple=True,
     help="Commits with containing this pattern will be ignored",
 )
+@click.option(
+    "--extra-dir",
+    multiple=True,
+    help="Extra directory to detect changes in (does not affect tag naming). Can be repeated.",
+)
 @click.argument("directory", required=False)
 def changelog(
     ctx: click.Context,
     project_path: Path,
     strict: bool,
     ignore_pattern: Tuple[str],
+    extra_dir: Tuple[str],
     directory: Optional[str],
 ) -> None:
     """Create a ChangeLog from Git history.
@@ -183,7 +220,9 @@ def changelog(
     git = Git(project_path)
 
     try:
-        next_version, changelog = _run(git, strict, directory, ignore_pattern)
+        next_version, changelog = _run(
+            git, strict, directory, ignore_pattern, extra_dir
+        )
     except ValueError as e:
         ctx.fail(e)  # type: ignore
 
