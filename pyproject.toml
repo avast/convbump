@@ -6,6 +6,7 @@ authors = ["Max Kovykov <maxim.kovykov@avast.com>"]
 license = "BSD-3-Clause"
 readme = "README.md"
 keywords = ["changelog", "conventional commit", "bump", "version", "calver"]
+homepage = "https://github.com/avast/convbump"
 classifiers = [
   "Development Status :: 4 - Beta",
   "Intended Audience :: Developers",
